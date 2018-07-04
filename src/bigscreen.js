@@ -1,9 +1,11 @@
 // A library to make it easier to use the JavaScript Fullscreen API.
 (function(root, document, iframe) {
 	'use strict';
-
+         
+	// 判断ios7
 	var iOS7 = /i(Pad|Phone|Pod)/.test(navigator.userAgent) && parseInt(navigator.userAgent.replace(/^.*OS (\d+)_(\d+).*$/, '$1.$2'), 10) >= 7;
 
+	//通过创建一个video元素，测试操作系统支持的requestFullscreen函数版本，并返回统一的去除前缀的函数名
 	var fn = (function() {
 		var testElement = document.createElement('video');
 		var browserProperties = {
@@ -32,6 +34,7 @@
 	}());
 
 	// Find a child video in the element passed.
+	// 获取元素的video节点
 	function _getVideo(element) {
 		var videoElement = null;
 
@@ -54,6 +57,7 @@
 	var elements = [];
 	var chromeAndroid = false;
 
+	// 获取安卓的chrome的版本。如果不是安卓或者chrome，则是false
 	if (navigator.userAgent.indexOf('Android') > -1 && navigator.userAgent.indexOf('Chrome') > -1) {
 		chromeAndroid = parseInt(navigator.userAgent.replace(/^.*Chrome\/(\d+).*$/, '$1'), 10) || true;
 	}
@@ -61,11 +65,15 @@
 	// Attempt to put a child video into full screen using webkitEnterFullscreen.
 	// The metadata must be loaded in order for it to work, so load it automatically
 	// if it isn't already.
+	// 全屏播放视频
 	function videoEnterFullscreen(element) {
+		// 获取video节点
 		var videoElement = _getVideo(element);
 
+		// 
 		if (videoElement && videoElement.webkitEnterFullscreen) {
 			try {
+				// 
 				if (videoElement.readyState < videoElement.HAVE_METADATA) {
 					videoElement.addEventListener('loadedmetadata', function onMetadataLoaded() {
 						videoElement.removeEventListener('loadedmetadata', onMetadataLoaded, false);
@@ -76,6 +84,8 @@
 				}
 				else {
 					videoElement.webkitEnterFullscreen();
+					
+					// 是否有control
 					hasControls = !!videoElement.getAttribute('controls');
 				}
 
