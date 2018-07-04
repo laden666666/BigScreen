@@ -52,10 +52,13 @@
 		return videoElement;
 	}
 
+	// 查找的视频元素
 	var lastVideoElement = null;
+	// 视频元素是否有controls
 	var hasControls = null;
 	var emptyFunction = function() {};
 	var elements = [];
+	// 是否是安卓的chrome
 	var chromeAndroid = false;
 
 	// 获取安卓的chrome的版本。如果不是安卓或者chrome，则是false
@@ -71,7 +74,9 @@
 		// 获取video节点
 		var videoElement = _getVideo(element);
 
-		// 
+		// ************************重要
+		// 在一些webkit内核的浏览器中（如safari），视频进入全屏和退出全屏是一套新api（webkitEnterFullscreen），而不是webkitRequestFullscreen
+	        // 而且必须在视频的媒体信息加载完成后才能工作
 		if (videoElement && videoElement.webkitEnterFullscreen) {
 			try {
 				// 
