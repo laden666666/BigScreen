@@ -6,6 +6,7 @@
 	var iOS7 = /i(Pad|Phone|Pod)/.test(navigator.userAgent) && parseInt(navigator.userAgent.replace(/^.*OS (\d+)_(\d+).*$/, '$1.$2'), 10) >= 7;
 
 	//通过创建一个video元素，测试操作系统支持的requestFullscreen函数版本，并返回统一的去除前缀的函数名
+	//fn是一个对象
 	var fn = (function() {
 		var testElement = document.createElement('video');
 		var browserProperties = {
@@ -199,6 +200,7 @@
 		}
 	};
 
+	// 定义bigscreen模块
 	var bigscreen = {
 		// ### request
 		// The meat of BigScreen is here. Run through a bunch of checks to try to get
@@ -326,36 +328,44 @@
 			element: {
 				enumerable: true,
 				get: function() {
+					//如果视频全屏显示了，返回视频节点
 					if (lastVideoElement && lastVideoElement.webkitDisplayingFullscreen) {
 						return lastVideoElement;
 					}
-
+					
+					// ????
 					return document[fn.element] || null;
 				}
 			},
 			// ### enabled
 			// Check if element full screen is supported.
+			//判断是否支持全屏
 			enabled: {
 				enumerable: true,
 				get: function() {
 					// Safari 5.1 supports full screen, but doesn't have a fullScreenEnabled property,
 					// but it should work if not in an iframe. If it doesn't work when tried for the
 					// first time, we'll set this to `false` then.
+					//ios不支持fullScreenEnabled，但是仍然支持全屏显示。所以如果有webkitCancelFullScreen认为是支持全屏
+					//但是ios的iframe中不支持全屏
 					if (fn.exit === 'webkitCancelFullScreen' && !iframe) {
 						return true;
 					}
 
 					// Chrome on Android reports that fullscreen is enabled, but it isn't really.
+					//安卓上chrome版本在32以前的版本自称支持全屏，但是实际上是不支持的，所以返回false
 					if (chromeAndroid !== false && chromeAndroid < 32) {
 						return false;
 					}
 
+					//排除特殊版本后，使用enabled判断
 					return document[fn.enabled] || false;
 				}
 			}
 		});
 
 		// If there is a valid `fullscreenchange` event, set up the listener for it.
+		//增添fullscreenchange处理
 		if (fn.change) {
 			document.addEventListener(fn.change, function onFullscreenChange(event) {
 				bigscreen.onchange(bigscreen.element);
@@ -429,17 +439,20 @@
 	}
 
 	/* eslint-disable no-undef */
+	//amd模块
 	if (typeof define === 'function' && define.amd) {
 		define(function() {
 			return bigscreen;
 		});
 	}
+	//commonjs模块
 	else if (typeof module !== 'undefined' && module.exports) {
 		module.exports = bigscreen;
 	}
+	//直接在root（window）中创建
 	else {
 		root.BigScreen = bigscreen;
 	}
 	/* eslint-enable no-undef */
-
+//root模块，如果是浏览器环境下就是window。 通过self!=top判断是否是
 }(this, document, self !== top));
