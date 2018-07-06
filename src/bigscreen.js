@@ -326,6 +326,7 @@
 			element = element || document.body;
 			var video = _getVideo(element);
 
+			//webkitSupportsFullscreen这个函数？？？？？？？？？
 			if (!video || video.webkitSupportsFullscreen === undefined) {
 				return false;
 			}
