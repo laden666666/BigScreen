@@ -111,6 +111,7 @@
 	// entering full screen from inside an iframe, and won't fire it when exiting. We can listen for
 	// a resize event once we enter to tell when it returns to normal size (and thus has exited full
 	// screen). See the [Safari bug](rdar://11927884).
+	//修复resize的bug，该bug是从iframe里面进入全屏，webkitfullscreenchange不触发，所以使用resize代替webkitfullscreenchange
 	function resizeExitHack() {
 		if (!bigscreen.element) {
 			callOnExit();
@@ -120,17 +121,20 @@
 
 	// Add the listener for the resize hack, but only when inside an iframe in WebKit.
 	function addWindowResizeHack() {
+		// 如果是webkit内核，在浏览器reszie会有bug，所以加一个hack。因为bug仅在iframe发生，所以仅在iframe存在时候加补丁
 		if (iframe && fn.change === 'webkitfullscreenchange') {
 			window.addEventListener('resize', resizeExitHack, false);
 		}
 	}
 
+	//退出全屏时候，移除对补丁的监听
 	function removeWindowResizeHack() {
 		if (iframe && fn.change === 'webkitfullscreenchange') {
 			window.removeEventListener('resize', resizeExitHack, false);
 		}
 	}
 
+	//进入全屏的回调
 	var callOnEnter = function(actualElement) {
 		// Return if the element entering has actually entered already. In older WebKit versions the
 		// browser will fire 2 `webkitfullscreenchange` events when entering full screen from inside an
@@ -161,6 +165,7 @@
 		lastElement.hasEntered = true;
 	};
 
+	//退出全屏时候调用
 	var callOnExit = function() {
 		// Fix a bug present in some versions of WebKit that will show the native controls when
 		// exiting, even if they were not showing before. In iOS 7, this actually causes the
@@ -195,6 +200,7 @@
 
 	// Make a callback to the error handlers and clear the element from the stack when
 	// an error occurs.
+	// 错误时候调用
 	var callOnError = function(reason, element) {
 		if (elements.length > 0) {
 			var obj = elements.pop();
@@ -213,6 +219,7 @@
 		request: function(element, enterCallback, exitCallback, errorCallback) {
 			element = element || document.body;
 
+			//将用于请求的element放入elements里面，具体意义不清楚，是为了做全屏后再全屏？？？？？？？？？？？？
 			elements.push({
 				element: element,
 				enter: enterCallback || emptyFunction,
@@ -223,17 +230,20 @@
 			// iOS only supports webkitEnterFullscreen on videos, so try that.
 			// Browsers that don't support full screen at all will also go through this,
 			// but they will fire an error.
+			//如果浏览器不支持视频全屏，则尝试使用视频全屏进行全屏
 			if (fn.request === undefined) {
 				videoEnterFullscreen(element);
 				return;
 			}
 
+			//同上
 			// `document.fullscreenEnabled` defined, but is `false`, so try a video if there is one.
 			if (iframe && document[fn.enabled] === false) {
 				videoEnterFullscreen(element);
 				return;
 			}
 
+			//安卓chrome在32版本全，仅支持视频全屏
 			// Chrome on Android reports that fullscreen is enabled, but it isn't really on < 32.
 			if (chromeAndroid !== false && chromeAndroid < 32) {
 				videoEnterFullscreen(element);
@@ -243,6 +253,8 @@
 			// If we're in an iframe, it needs to have the `allowfullscreen` attribute in order for element full screen
 			// to work. Safari 5.1 supports element full screen, but doesn't have `document.webkitFullScreenEnabled`,
 			// so the only way to tell if it will work is to just try it.
+			//如果在safari的iframe里面，需要iframe设置allowfullscreen才支持全屏
+			//但是safari5.1是支持全屏的，不过在iframe里面却没有webkitFullscreenEnabled，所以需要特殊对应一下。所以只能尝试先全屏，如果失败再尝试视频全屏。
 			if (iframe && fn.enabled === undefined) {
 				fn.enabled = 'webkitFullscreenEnabled';
 
@@ -251,6 +263,7 @@
 				setTimeout(function() {
 					// It didn't work, so set `webkitFullscreenEnabled` to false so we don't
 					// have to try again next time. Then try to fall back to video full screen.
+					//如果全屏不工作，再尝试一下视频全屏
 					if (!document[fn.element]) {
 						document[fn.enabled] = false;
 						videoEnterFullscreen(element);
@@ -265,18 +278,21 @@
 			}
 
 			try {
+				//开始全屏
 				element[fn.request]();
 
 				// If there's no element after 100ms, it didn't work. This check is for Safari 5.1
 				// which fails to fire a `webkitfullscreenerror` if the request wasn't from a user
 				// action.
 				setTimeout(function() {
+					//如果element为空，说明全屏失败（为抛出异常）。则在回调错误
 					if (!document[fn.element]) {
 						callOnError(iframe ? 'not_enabled' : 'not_allowed', element);
 					}
 				}, 100);
 			}
 			catch (err) {
+				//全屏失败的回调
 				callOnError('not_enabled', element);
 			}
 		},
@@ -396,6 +412,7 @@
 		// Listen for the video-only fullscreen events. Only applies to mobile browsers.
 		// Desktop Safari and Chrome will fire the normal `fullscreenchange` event instead.
 		// Use the capture phase because that seems to be the only way to get them.
+		// video的全屏事件和其他的不同，是webkitbeginfullscreen和webkitendfullscreen，而不是change事件。但是bigscreen对此仍有bug，如果有精力我会尝试修复
 		document.addEventListener('webkitbeginfullscreen', function onBeginFullscreen(event) {
 			var shouldPushElement = true;
 
